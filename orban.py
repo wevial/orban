@@ -49,14 +49,58 @@ class Orban():
 
                 if len(nonop_char_count) > 1:
                     # backtrack to '(' >> else backtrack to ')' or beginning of str
-                    # LHS
+                    # Start with LHS of '|'
+                    re1 = ''
+                    re2 = ''
+                    #right_paren_found = False
+                    inside_paren = False
+                    lhs_paren_count = 0
+                    rhs_paren_count = 0
+#                    print("\nREGEX: " + regex)
                     for j in range(0, i):
-                        if regex[i-j] == '(':
-                            re1 = regex[i-j:i-1]
-                            # now find in the other direction
-                            r1 = self.regex_syntax(re1)
-                            r2 = self.regex_syntax(regex[i-j:i-1])
-                    for j in range(i, len(regex)):
+#                        print(str(j) + ": " + regex[i-j-1])
+                        if regex[i-j-1] == ')':
+                            lhs_paren_count += 1
+                        elif regex[i-j-1] == '(':
+                            lhs_paren_count -= 1
+                            if lhs_paren_count < 0:
+                                inside_paren = True
+                                # get sub string from '(' until '|'
+                                re1 = regex[i-j:i]
+                                break
+#                    print("LHS paren #: " + str(lhs_paren_count))
+                    if re1 == '':
+#                        print("lhs_paren_count: " + str(lhs_paren_count))
+#                        print(inside_paren)
+#                        print("re1 == ''")
+                        re1 = regex[:i]
+                        re2 = regex[i+1:]
+                    elif inside_paren:
+                        for j in range(i+1, len(regex)):
+                            if regex[j] == ')':
+                                rhs_paren_count -= 1
+                                if rhs_paren_count < 0:
+                                    re2 = regex[i+1:j]
+                                    break
+                            elif regex[j] == '(':
+                                rhs_paren_count += 1
+                        if re2 == '':
+                            return False
+
+#                    print("re1: " + re1)
+#                    print("re2: " + re2)
+                    r1 = self.regex_syntax(re1)
+                    r2 = self.regex_syntax(re2)
+                    if (r1 and r2) == False:
+                        return False
+                            
+                    r1 = self.regex_syntax(re1)
+                    r2 = self.regex_syntax(re2)
+                    if (r1 and r2) == False:
+                        return False
+
+
+                    for j in range(i+1, len(regex)):
                         pass
 
             else: # Non-operand character
