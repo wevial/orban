@@ -50,6 +50,11 @@ class TestRegexSyntax(unittest.TestCase):
         self.assertEqual(O.insert_concat("aa*"), "a.a*")
         self.assertEqual(O.insert_concat("a(a)*"), "a.(a)*")
 
+    def test_infix_to_postfix(self):
+        O = Orban()
+        self.assertEqual(O.infix_to_postfix("a*"), "a*")
+        self.assertEqual(O.infix_to_postfix("a|b"), "ab|")
+        self.assertEqual(O.infix_to_postfix("a.b.c"), "ab.c.")
 
 if __name__ == '__main__':
     unittest.main()
