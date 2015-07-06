@@ -7,10 +7,33 @@ class Orban():
 #  correct regular expressions to pass. This stage also inserts the
 #  operator "•" for juxtaposition of regular expressions."
 
+    def insert_concat(self, regex):
+        """
+        Insert infix concat operator. Assumes all input regexes
+        have been checked to be syntactically correct (aka checked
+        using regex_syntax())
+        """
+        if len(regex) == 1:
+            return regex
+        
+        new_regex = ''
+
+        for i in range(0, len(regex)):
+            new_regex += regex[i]
+            if i == len(regex) - 1:
+                break
+            elif regex[i] not in '(*+?|':
+                if regex[i+1] not in ')*+?|':
+                    new_regex += '.'
+        return new_regex
+
+
+
+
     def regex_syntax(self, regex):
         """
         Check that the input regular expression is syntatically correct.
-        Also adds "•" as a concatenation operator where applicable.
+        Also adds "." as a concatenation operator where applicable.
         """
         # Accounting for ( ) | * + ? operands only, no escapes
 
