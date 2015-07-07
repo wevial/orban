@@ -1,6 +1,8 @@
 # Orban: implementation of Thompson's construction algorithm in
 #        Python. "Regular Expression Search Algorithm"
 
+import pprint 
+
 class Orban:
 
 # "The first stage is a syntax sieve that allows only syntactically 
@@ -206,6 +208,48 @@ class Orban:
             postfix_regex += ops_stack.pop()
 #            print_stuff(ops_stack, postfix_regex, token)
         return postfix_regex
+
+
+
+    def build_tree(self, regex):
+        """
+        Input is a regular expression in postfix form. The function
+        constructs a syntax tree that corresponds to the regex.
+        """
+        def binary_op(regex):
+            (lhs, re1) = self.build_tree(regex[:-1])
+            (rhs, re2) = self.build_tree(re1)
+            label = 'Concat' if regex[-1] == '.' else 'Alternation' 
+            return ({label: [lhs, rhs]}, re2)
+
+        def unary_op(regex):
+            (child, re) = self.build_tree(regex[:-1])
+            label = ''
+            if regex[-1] == '*':
+                label = 'Kleene'
+            elif regex[-1] == '+':
+                label = 'Plus'
+            else:
+                label = 'Question'
+            return ({label: [child]}, re)
+
+        def literal(regex):
+            return ({"Literal": [regex[-1]]}, regex[:-1])
+
+        syntax_tree = {}
+        if regex[-1] in '.|':
+            syntax_tree = binary_op(regex)
+        elif regex[-1] in '*+?':
+            syntax_tree = unary_op(regex)
+        else:
+            syntax_tree = literal(regex)
+        return syntax_tree
+
+
+
+
+
+
 
 
 

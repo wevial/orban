@@ -56,7 +56,7 @@ class TestRegexSyntax(unittest.TestCase):
         O = Orban()
         self.assertEqual(O.infix_to_postfix("a*"), "a*")
         self.assertEqual(O.infix_to_postfix("a|b"), "ab|")
-        self.assertEqual(O.infix_to_postfix("a.(b.b)+.a"), "abb.+.a.")
+        self.assertEqual(O.infix_to_postfix("a.(b|c)*.d"), "abc|*.d.")
         self.assertEqual(O.infix_to_postfix("a.(b.b)+.a"), "abb.+.a.")
 
     def test_insert_concat_to_postfix(self):
