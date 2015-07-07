@@ -25,6 +25,9 @@ class Orban:
             elif regex[i] not in '(*+?|':
                 if regex[i+1] not in ')*+?|':
                     new_regex += '.'
+            elif regex[i] in '*+?':
+                if regex[i+1] not in ')*+?|':
+                    new_regex += '.'
         return new_regex
 
     def regex_syntax(self, regex):
@@ -72,7 +75,6 @@ class Orban:
                     # Start with LHS of '|'
                     re1 = ''
                     re2 = ''
-                    #right_paren_found = False
                     inside_paren = False
                     lhs_paren_count = 0
                     rhs_paren_count = 0
@@ -133,12 +135,43 @@ class Orban:
 
 # "The second stage converts the regular expressions to reverse Polish
 #  form."
-
+# "The regular expression a(b|c)*d is translated into abc|*•d• by the
+#  first two stages."
     def infix_to_postfix(self, regex):
         """
         Convert input regular expression to postfix notation
         using the Shunting-Yard algorithm.
         """
+
+        def cmp_precedence(top_op, op):
+            """
+            Compares operator precedence.
+            True: pop off top_op
+            False: don't pop it
+            """
+            if top_op in '()':
+                return False
+            precedence = {
+                    '*': (3, 'r'),
+                    '+': (3, 'r'),
+                    '?': (3, 'r'),
+                    '.': (2, 'l'),
+                    '|': (1, 'l'),
+                    }
+            (top_op, top_op_assoc) = precedence[top_op]
+            (op, op_assoc) = precedence[op]
+            if op_assoc == 'l': # operator is left associative
+                # precdence is op <= to top_op, then pop top_op to queue
+                return True if op <= top_op else False
+            else: # op_assoc is right associative
+                # precdence is op < to top_op, then pop top_op to queue
+                return True if op < top_op else False
+
+        def print_stuff(ops_stack, regex, token):
+            print("token: " + token)
+            print("ops: " + str(ops_stack))
+            print("regex: " + regex + "\n")
+
         ops_stack = []
         postfix_regex = ''
 
@@ -147,59 +180,33 @@ class Orban:
                 postfix_regex += token
             elif token == '(':
                 ops_stack.append(token)
+#                print_stuff(ops_stack, postfix_regex, token)
             elif token == ')':
                 while len(ops_stack) > 0 and ops_stack[-1] != '(':
                     postfix_regex += ops_stack.pop()
-                right_paren = ops_stack.pop()
-                if ops_stack[-1] not in '()':
-                    ops
-#                postfix_regex += ops_stack.pop() # pop left paren
+                ops_stack.pop() # Pop off '(' from stack
+#                print_stuff(ops_stack, postfix_regex, token)
             else:
-                if len(ops_stack) > 0:
+                if len(ops_stack) <= 0:
                     ops_stack.append(token)
                 else:
-                    for op in ops_stack:
-                        pass
+                    while ops_stack:
+                        top_op = ops_stack[-1]
+                        r = cmp_precedence(top_op, token)
+                        if r:
+                            postfix_regex += ops_stack.pop()
+                        else:
+                            break
                     ops_stack.append(token)
+#                print_stuff(ops_stack, postfix_regex, token)
+        while ops_stack:
+            if ops_stack[-1] in '()':
+                # Mismatched parenthesis
+                return postfix_regex
+            postfix_regex += ops_stack.pop()
+#            print_stuff(ops_stack, postfix_regex, token)
+        return postfix_regex
 
-        def cmp_precedence(top_op, op):
-            """
-            Compares operator precedence.
-            True: top_op has higher precedence
-            False: op has equiv. or higher precdence
-            """
-            precedence = {
-                    '*': 3,
-                    '+': 3,
-                    '?': 3,
-                    '.': 2,
-                    '|': 1,
-                    }
-            top_op = precedence[top_op]
-            op = precedence[op]
-            if top_op > op:
-                return True
-            else:
-                return False
-
-
-        for token in regex:
-            if token not in ops:
-                stack.append(token)
-            else: # token is an op
-                if token in '*+?': # Unary op
-                    if len(stack) < 1:
-                        # Error - no input
-                        return None
-                    x = 
-                elif token in '|.': # Binary op
-                    if len(stack) < 2:
-                        # Error - not enough inputs
-                        return None
-                    pass
-
-# "The regular expression a(b|c)*d is translated into abc|*•d• by the
-#  first two stages."
 
 
 # "The third stage is the object code producer. It expects a syntactically

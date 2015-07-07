@@ -49,12 +49,22 @@ class TestRegexSyntax(unittest.TestCase):
         self.assertEqual(O.insert_concat("a*"), "a*")
         self.assertEqual(O.insert_concat("aa*"), "a.a*")
         self.assertEqual(O.insert_concat("a(a)*"), "a.(a)*")
+        self.assertEqual(O.insert_concat("a(bb)+a"), "a.(b.b)+.a")
+        self.assertEqual(O.insert_concat("a(b|c)*d"), "a.(b|c)*.d")
 
     def test_infix_to_postfix(self):
         O = Orban()
         self.assertEqual(O.infix_to_postfix("a*"), "a*")
         self.assertEqual(O.infix_to_postfix("a|b"), "ab|")
-        self.assertEqual(O.infix_to_postfix("a.b.c"), "ab.c.")
+        self.assertEqual(O.infix_to_postfix("a.(b.b)+.a"), "abb.+.a.")
+        self.assertEqual(O.infix_to_postfix("a.(b.b)+.a"), "abb.+.a.")
+
+    def test_insert_concat_to_postfix(self):
+        O = Orban()
+        regex = 'a(b|c)*d'
+        syntax = O.insert_concat(regex)
+        self.assertEqual(syntax, 'a.(b|c)*.d')
+        self.assertEqual(O.infix_to_postfix(syntax), 'abc|*.d.')
 
 if __name__ == '__main__':
     unittest.main()
