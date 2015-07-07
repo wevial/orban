@@ -37,7 +37,7 @@ def check_syntax(regex):
             nonop_token_count.pop()
 
         elif regex[i] in '*+?':
-            if nonop_token_count[-1] == 0: # Cannot operate without tokens
+            if nonop_token_count[-1] == 0 and literal_count == 0: # Cannot operate without tokens
                 # print('op?')
                 return False
             elif regex[i-1] in ops:
@@ -236,7 +236,7 @@ def build_tree(regex):
         label = ''
         if regex[-1] == '+':
             label = 'Plus'
-            k = {'Kleene': child}
+            k = {'Kleene': [child]}
             return ({'Concat': [k, child]}, re)
         elif regex[-1] == '*':
             label = 'Kleene'
