@@ -1,7 +1,7 @@
 # Orban: implementation of Thompson's construction algorithm in
 #        Python. "Regular Expression Search Algorithm"
 
-import pprint 
+import pprint as P
 
 Node = dict
 Leaf = str
@@ -235,6 +235,9 @@ def build_tree(regex):
         (child, re) = build_tree(regex[:-1])
         label = ''
         if regex[-1] == '+':
+            # A+ is equivalent to (AA)*. Converting the plus operator
+            # to {Concat: [{Kleene: A}, A]} makes it simpler to construct
+            # the NFA. 
             label = 'Plus'
             k = {'Kleene': [child]}
             return ({'Concat': [k, child]}, re)
@@ -282,7 +285,7 @@ class Match:
         pass
 
     def __repr__(self):
-        return "Matching state"
+        return "Match"
 
 class Edge:
     """ Represent different edges of the NFA """
@@ -299,7 +302,7 @@ class Placeholder:
         self.pointing_to = pointing_to
 
     def __repr__(self):
-        return "Placeholder -> " + str(self.pointing_to)
+        return "Placeholder -> " # + str(self.pointing_to)
 
 def to_nfa(regex, and_then=None):
     """
@@ -324,9 +327,16 @@ def to_nfa(regex, and_then=None):
             return Split(r1, r2)
         elif label == 'Kleene':
             placeholder = Placeholder(None)
-            r = regex[label]
-            split = Split(to_nfa(r, placeholder), and_then)
+            re = regex[label][0]
+            # res = to_nfa(r, placeholder)
+            # print(res)
+            # print()
+            split = Split(to_nfa(re, placeholder), and_then)
             placeholder.pointing_to = split
+            # print("Split:\t" + str(split))
+            # print("PH:\t" + str(placeholder))
+            # print("And then:\t" + str(and_then))
+            # P.pprint(re)
             return placeholder
 
 
