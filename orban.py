@@ -12,24 +12,22 @@ class Split:
 
     def __repr__(self):
         # return "Split: out1 -> " + str(type(self.out1)) + " || out2 -> " + str(type(self.out2))
-        return "Split: -> " + str(self.out1) + "\n->" + str(self.out2)
+        return "Split -> " + str(id(self.out1)) + "// ->" + str(id(self.out2))
 
 class Match:
     """ If you've reached this state, you have found a match! """
-    def __init__(self):
-        pass
-
     def __repr__(self):
         return "Match"
 
 class Consume:
-    """ Represent different Consumes of the NFA """
+    """ Represents the "edges" of the NFA which consume tokens """
     def __init__(self, literal, out):
         self.literal = literal 
         self.out = out # State which Consume points to
 
     def __repr__(self):
-        return "Consume '" + str(self.literal) + "' -> " + str(self.out)
+        return "Consume '" + str(self.literal) + "' -> " + str(id(self.out))
+        # return "Consume '" + str(self.literal) + "' -> " + str(self.out)
 
 class Placeholder:
     """ Represent a placeholder state """
@@ -37,7 +35,7 @@ class Placeholder:
         self.pointing_to = pointing_to
 
     def __repr__(self):
-        return "Placeholder -> " # + str(self.pointing_to)
+        return "Placeholder -> " + str(id(self.pointing_to))
 
 
 # "The first stage is a syntax sieve that allows only syntactically 
@@ -488,45 +486,4 @@ def match(nfa, string):
 
 
 
-
-
-
-
-# "The third stage is the object code producer. It expects a syntactically
-#  correct reverse Polish regular expression as input."
-
-# "The heard of the third stage is a pushdown stack. Each entry in the
-#  stack is a pointer to the compiled code of an operand. When a binary
-#  operator ("|" or "•") is compiled, the top (most recent) two entries
-#  on the stack are combined and a resultant point for the operation
-#  replaces the two stack entries. The result of the binary operator is
-#  then available as an operand in another operation. Similarly a unary
-#  operator ("*") operates on the top entry of the stack and creates an
-#  operand to replace that entry. When the entire regular expression is
-#  compiled, there is just one entry in the stack, and that is a pointer
-#  to the code for the regular expression."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# EOF #
