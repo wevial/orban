@@ -3,8 +3,6 @@
 
 import pprint as P
 
-Node = dict
-Leaf = str
 
 class Split:
     """ Represent different states of the NFA """
@@ -262,8 +260,9 @@ def build_tree(regex):
     constructs a syntax tree that corresponds to the regex.
     """
     def binary_op(regex):
-        (lhs, re1) = build_tree(regex[:-1])
-        (rhs, re2) = build_tree(re1)
+        # Right hand side is processed first due to postfix notation
+        (rhs, re1) = build_tree(regex[:-1])
+        (lhs, re2) = build_tree(re1)
         label = 'Concat' if regex[-1] == '.' else 'Or' 
         return ({label: [lhs, rhs]}, re2)
 
@@ -308,7 +307,7 @@ def re_to_tree(regex):
 def to_nfa(regex, and_then=None):
     """
     Takes in a regular expression in the form of a syntax tree
-    and converts it into a NFA
+    and converts it into a NFA.
     """
     if and_then == None:
         return to_nfa(regex, Match())
@@ -370,7 +369,7 @@ def nfa_states(nfa):
 
     # while type(nfa) != type(Match()):
 
-def evaluate_nfa(nfa, string):
+# def evaluate_nfa(nfa, string):
     def eval_states(nfa, char):
         stateStates = nfa_states(nfa)[0]
         return {eval_state(state, char, stateStates) for state in stateStates}
@@ -405,7 +404,87 @@ def evaluate_nfa(nfa, string):
             string[1:] # recursive call eval to check for the rest of the string
             )
 
+def match(nfa, string):
+    # def simulate_states(nfa_list, token):
+    #     # next_states = set()
+    #     next_states = []
+    #     nfa_stuff = []
+    #     for state in nfa_list:
+    #         nfa_stuff.append(sim_state(state, token, next_states))
+    #     return nfa_stuff
 
+    # def sim_state(current_state, token, next_states):
+    #     if current_state in next_states:
+    #         return []
+    #     else:
+    #         next_states.append(current_state)
+    #         if type(current_state) == Match:
+    #             # return True
+    #             return [] if token != None else [Match()]
+    #         elif type(current_state) == Consume:
+    #             if current_state.literal == token:
+    #                 return [current_state.out]
+    #             else:
+    #                 return []
+    #         elif type(current_state) == Placeholder:
+    #             return sim_state(current_state.pointing_to, token, next_states)
+    #         elif type(current_state) == Split:
+    #             r1 = sim_state(current_state.out1, token, next_states)
+    #             r2 = sim_state(current_state.out2, token, next_states)
+    #             return r1 + r2
+
+    def simulate_states(nfa_list, token):
+        visited = set()
+        next_states = []
+        for state in nfa_list:
+            (new_states, visited) = sim_state(state, token, visited)
+            next_states += new_states
+            # print(token + " NEW: " + str(new_states))
+        # print(next_states)
+        return next_states
+
+    def sim_state(curr_state, token, visited):
+        nope = ([], visited)
+        if curr_state in visited:
+            return nope
+        else:
+            visited.add(curr_state)
+            # ty = type(curr_state) DRY!
+            if type(curr_state) == Consume:
+                if curr_state.literal == token:
+                    return ([curr_state.out], visited)
+                else:
+                    return nope
+            elif type(curr_state) == Split:
+                (s1, visited) = sim_state(curr_state.out1, token, visited)
+                (s2, visited) = sim_state(curr_state.out2, token, visited)
+                return (s1 + s2, visited)
+            elif type(curr_state) == Placeholder:
+                return sim_state(curr_state.pointing_to, token, visited)
+            else: # type == Match
+                # return [] if token != None else [Match()]
+                return ([] if token != None else [curr_state], visited)
+                # return nope
+
+
+    if type(nfa) != list:
+        return match([nfa], string)
+        
+    if string == '':
+        # WARNING: THIS IS NOT CORRECT/COMPLETE!!
+        states = simulate_states(nfa, None)
+        for state in states:
+            if type(state) == Match:
+                return True
+        else:
+            return False
+        # x = simulate_states(nfas, None)
+        # if match is in the result, then there's a match
+    else: # Non-empty string
+        # get set of possible states for next token in string
+        next_states = simulate_states(nfa, string[0])
+        # return next_states
+        return match(next_states, string[1:])
 
 
 
