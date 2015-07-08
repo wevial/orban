@@ -6,6 +6,42 @@ import pprint as P
 Node = dict
 Leaf = str
 
+class Split:
+    """ Represent different states of the NFA """
+    def __init__(self, out1, out2):
+        self.out1 = out1
+        self.out2 = out2
+
+    def __repr__(self):
+        # return "Split: out1 -> " + str(type(self.out1)) + " || out2 -> " + str(type(self.out2))
+        return "Split: -> " + str(self.out1) + "\n->" + str(self.out2)
+
+class Match:
+    """ If you've reached this state, you have found a match! """
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return "Match"
+
+class Consume:
+    """ Represent different Consumes of the NFA """
+    def __init__(self, literal, out):
+        self.literal = literal 
+        self.out = out # State which Consume points to
+
+    def __repr__(self):
+        return "Consume '" + str(self.literal) + "' -> " + str(self.out)
+
+class Placeholder:
+    """ Represent a placeholder state """
+    def __init__(self, pointing_to):
+        self.pointing_to = pointing_to
+
+    def __repr__(self):
+        return "Placeholder -> " # + str(self.pointing_to)
+
+
 # "The first stage is a syntax sieve that allows only syntactically 
 #  correct regular expressions to pass. This stage also inserts the
 #  operator "•" for juxtaposition of regular expressions."
@@ -67,17 +103,17 @@ def check_syntax(regex):
                 lhs_paren_count = 0
                 rhs_paren_count = 0
                # print("\nREGEX: " + regex)
-                # for j in range(0, i):
-                #     print(str(j) + ": " + regex[i-j-1])
-                #     if regex[i-j-1] == ')':
-                #         lhs_paren_count += 1
-                #     elif regex[i-j-1] == '(':
-                #         lhs_paren_count -= 1
-                #         if lhs_paren_count < 0:
-                #             inside_paren = True
-                #             # get sub string from '(' until '|'
-                #             re1 = regex[i-j:i]
-                #             break
+                for j in range(0, i):
+                    # print(str(j) + ": " + regex[i-j-1])
+                    if regex[i-j-1] == ')':
+                        lhs_paren_count += 1
+                    elif regex[i-j-1] == '(':
+                        lhs_paren_count -= 1
+                        if lhs_paren_count < 0:
+                            inside_paren = True
+                            # get sub string from '(' until '|'
+                            re1 = regex[i-j:i]
+                            break
                 # print("LHS paren #: " + str(lhs_paren_count))
                 # print('inside paren')
                 if re1 == '':
@@ -269,41 +305,6 @@ def re_to_tree(regex):
     (re_tree, t) = build_tree(regex)
     return re_tree
 
-
-class Split:
-    """ Represent different states of the NFA """
-    def __init__(self, out1, out2):
-        self.out1 = out1
-        self.out2 = out2
-
-    def __repr__(self):
-        return "Split: -> " + str(self.out1) + "\n->" + str(self.out2)
-
-class Match:
-    """ If you've reached this state, you have found a match! """
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return "Match"
-
-class Edge:
-    """ Represent different edges of the NFA """
-    def __init__(self, literal, out):
-        self.literal = literal 
-        self.out = out # State which edge points to
-
-    def __repr__(self):
-        return "Edge '" + str(self.literal) + "' -> " + str(self.out)
-
-class Placeholder:
-    """ Represent a placeholder state """
-    def __init__(self, pointing_to):
-        self.pointing_to = pointing_to
-
-    def __repr__(self):
-        return "Placeholder -> " # + str(self.pointing_to)
-
 def to_nfa(regex, and_then=None):
     """
     Takes in a regular expression in the form of a syntax tree
@@ -314,7 +315,7 @@ def to_nfa(regex, and_then=None):
 
     for label in regex:
         if label == 'Literal':
-            return Edge(regex[label][0], and_then)
+            return Consume(regex[label][0], and_then)
         elif label == 'Concat':
             lhs = regex[label][0]
             rhs = regex[label][1]
@@ -339,6 +340,70 @@ def to_nfa(regex, and_then=None):
             # P.pprint(re)
             return placeholder
 
+def nfa_states(nfa):
+    """
+    Use BFS to retrieve all states in the NFA. This is more for bug
+    checking than for anything else. Maybe I could visualize the NFA, idk.
+    """
+    stack = [nfa]
+    states = set()
+    visited = set()
+    while stack:
+        state = stack.pop()
+        if state not in visited:
+            visited.add(state)
+            if type(state) == Consume:
+                stack.append(state.out)
+                states.add(("Consume", state.literal, id(state)))
+            elif type(state) == Split:
+                stack.append(state.out1)
+                stack.append(state.out2)
+                states.add(("Split", id(state.out1), id(state.out2), id(state)))
+            elif type(state) == Placeholder:
+                stack.append(state.pointing_to)
+                states.add(("Placeholder", id(state)))
+            else: # type(state) == Match:
+                states.add(("Match", id(state)))
+    # print(len(states))
+    return (states, visited)
+
+
+    # while type(nfa) != type(Match()):
+
+def evaluate_nfa(nfa, string):
+    def eval_states(nfa, char):
+        stateStates = nfa_states(nfa)[0]
+        return {eval_state(state, char, stateStates) for state in stateStates}
+
+    def eval_state(curr_state, char, stateStates):
+        if curr_state in stateStates:
+            return set()
+        else:
+            stateStates.add(curr_state)
+            if type(curr_state) == Placeholder:
+                return eval_state(curr_state.pointing_to, char, stateStates)
+            elif type(curr_state) == Consume:
+                if curr_state.literal == char:
+                    return Set(curr_state.out)
+                else:
+                    return set()
+            elif type(curr_state) == Split:
+                r1 = eval_state(curr_state.out1, char, stateStates)
+                r2 = eval_state(curr_state.out2, char, stateStates)
+                return r1.union(r2)
+            elif type(curr_state) == Match:
+                return set() if char != None else set(Match())
+            
+    if type(nfa) != set:
+        return evaluate_nfa({nfa}, string)
+
+    if string == '' or string == None:
+        return eval_states(nfa, None)
+    else: # Non-empty string
+        return evaluate_nfa(
+            eval_states(nfa, string[0]), # Get set of states for that char
+            string[1:] # recursive call eval to check for the rest of the string
+            )
 
 
 
@@ -361,3 +426,28 @@ def to_nfa(regex, and_then=None):
 #  operand to replace that entry. When the entire regular expression is
 #  compiled, there is just one entry in the stack, and that is a pointer
 #  to the code for the regular expression."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
