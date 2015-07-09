@@ -1,9 +1,6 @@
 # Orban: implementation of Thompson's construction algorithm in
 #        Python. "Regular Expression Search Algorithm"
 
-import pprint as P
-
-
 class Split:
     """ Represent different states of the NFA """
     def __init__(self, out1, out2):
@@ -12,7 +9,7 @@ class Split:
 
     def __repr__(self):
         # return "Split: out1 -> " + str(type(self.out1)) + " || out2 -> " + str(type(self.out2))
-        return "Split -> " + str(id(self.out1)) + "// ->" + str(id(self.out2))
+        return "Split -> " + str(id(self.out1)) + " | ->" + str(id(self.out2))
 
 class Match:
     """ If you've reached this state, you have found a match! """
@@ -336,6 +333,12 @@ def to_nfa(regex, and_then=None):
             # print("And then:\t" + str(and_then))
             # P.pprint(re)
             return placeholder
+        elif label == 'Question':
+            placeholder = Placeholder(None)
+            re = regex[label][0] # val of '?'
+            split = Split(to_nfa(re, placeholder), and_then)
+            placeholder.pointing_to = and_then
+            return split
 
 def nfa_states(nfa):
     """
@@ -403,34 +406,6 @@ def nfa_states(nfa):
             )
 
 def match(nfa, string):
-    # def simulate_states(nfa_list, token):
-    #     # next_states = set()
-    #     next_states = []
-    #     nfa_stuff = []
-    #     for state in nfa_list:
-    #         nfa_stuff.append(sim_state(state, token, next_states))
-    #     return nfa_stuff
-
-    # def sim_state(current_state, token, next_states):
-    #     if current_state in next_states:
-    #         return []
-    #     else:
-    #         next_states.append(current_state)
-    #         if type(current_state) == Match:
-    #             # return True
-    #             return [] if token != None else [Match()]
-    #         elif type(current_state) == Consume:
-    #             if current_state.literal == token:
-    #                 return [current_state.out]
-    #             else:
-    #                 return []
-    #         elif type(current_state) == Placeholder:
-    #             return sim_state(current_state.pointing_to, token, next_states)
-    #         elif type(current_state) == Split:
-    #             r1 = sim_state(current_state.out1, token, next_states)
-    #             r2 = sim_state(current_state.out2, token, next_states)
-    #             return r1 + r2
-
     def simulate_states(nfa_list, token):
         visited = set()
         next_states = []
@@ -448,31 +423,31 @@ def match(nfa, string):
         else:
             visited.add(curr_state)
             # ty = type(curr_state) DRY!
-            if type(curr_state) == Consume:
+            if isinstance(curr_state, Consume):
                 if curr_state.literal == token:
                     return ([curr_state.out], visited)
                 else:
                     return nope
-            elif type(curr_state) == Split:
+            elif isinstance(curr_state, Split):
                 (s1, visited) = sim_state(curr_state.out1, token, visited)
                 (s2, visited) = sim_state(curr_state.out2, token, visited)
                 return (s1 + s2, visited)
-            elif type(curr_state) == Placeholder:
+            elif isinstance(curr_state, Placeholder):
                 return sim_state(curr_state.pointing_to, token, visited)
             else: # type == Match
                 # return [] if token != None else [Match()]
                 return ([] if token != None else [curr_state], visited)
                 # return nope
 
-
-    if type(nfa) != list:
+    if isinstance(nfa, str):
+        return match([to_nfa(re_to_tree(nfa))], string)
+    elif not isinstance(nfa, list):
         return match([nfa], string)
         
     if string == '':
-        # WARNING: THIS IS NOT CORRECT/COMPLETE!!
         states = simulate_states(nfa, None)
         for state in states:
-            if type(state) == Match:
+            if isinstance(state, Match):
                 return True
         else:
             return False
