@@ -1,8 +1,48 @@
 # Orban: implementation of Thompson's construction algorithm in
 #        Python. "Regular Expression Search Algorithm"
 
+class OrbanHelper:
+    def __init__(self):
+        pass
+
+    def simulate_states(self, nfa_list, token):
+        visited = set()
+        next_states = []
+        for state in nfa_list:
+            (new_states, visited) = self.sim_state(state, token, visited)
+            next_states += new_states
+        return next_states
+
+    def sim_state(self, curr_state, token, visited):
+        if curr_state in visited:
+            return ([], visited)
+        else:
+            visited.add(curr_state)
+            if isinstance(curr_state, Consume):
+                if curr_state.literal == token:
+                    return ([curr_state.out], visited)
+                else:
+                    return ([], visited)
+            elif isinstance(curr_state, Split):
+                (s1, visited) = self.sim_state(curr_state.out1, token, visited)
+                (s2, visited) = self.sim_state(curr_state.out2, token, visited)
+                return (s1 + s2, visited)
+            elif isinstance(curr_state, Placeholder):
+                return self.sim_state(curr_state.pointing_to, token, visited)
+            else: # type == Match
+                return ([] if token != None else [curr_state], visited)
+
+    def match_state_exists(self, states):
+        for state in states:
+            if isinstance(state, Match):
+                return True
+        return False
+
 class Split:
-    """ Represent different states of the NFA """
+    """
+    Represent different splitting states of the NFA, needed
+    for alternation '|' and zero-or-one '?' operand.
+    """
     def __init__(self, out1, out2):
         self.out1 = out1
         self.out2 = out2
@@ -16,7 +56,7 @@ class Match:
         return "Match"
 
 class Consume:
-    """ Represents the "edges" of the NFA which consume tokens """
+    """ Represents the "edges" of the NFA that consume tokens. """
     def __init__(self, literal, out):
         self.literal = literal 
         self.out = out # State which Consume points to
@@ -25,7 +65,7 @@ class Consume:
         return "Consume '" + str(self.literal) + "' -> " + str(id(self.out))
 
 class Placeholder:
-    """ Represent a placeholder state """
+    """ Represent a placeholder state. Needed for empty string processing. """
     def __init__(self, pointing_to):
         self.pointing_to = pointing_to
 
@@ -240,38 +280,38 @@ def regex2tree(regex):
     (re_tree, t) = build_tree(regex)
     return re_tree
 
-def tree2nfa(regex, and_then=None):
+def tree2nfa(regex, next_states=None):
     """
     Takes in a regular expression in the form of a syntax tree
     and converts it into a NFA.
     """
-    if and_then == None:
+    if next_states == None:
         return tree2nfa(regex, Match())
 
     for label in regex:
         if label == 'Literal':
-            return Consume(regex[label][0], and_then)
+            return Consume(regex[label][0], next_states)
         elif label == 'Concat':
             lhs = regex[label][0]
             rhs = regex[label][1]
-            return tree2nfa(lhs, tree2nfa(rhs, and_then))
+            return tree2nfa(lhs, tree2nfa(rhs, next_states))
         elif label == 'Or':
             lhs = regex[label][0]
             rhs = regex[label][1]
-            r1 = tree2nfa(lhs, and_then)
-            r2 = tree2nfa(rhs, and_then)
+            r1 = tree2nfa(lhs, next_states)
+            r2 = tree2nfa(rhs, next_states)
             return Split(r1, r2)
         elif label == 'Kleene':
             placeholder = Placeholder(None)
             re = regex[label][0]
-            split = Split(tree2nfa(re, placeholder), and_then)
+            split = Split(tree2nfa(re, placeholder), next_states)
             placeholder.pointing_to = split
             return placeholder
         elif label == 'Question':
             placeholder = Placeholder(None)
             re = regex[label][0] # val of '?'
-            split = Split(tree2nfa(re, placeholder), and_then)
-            placeholder.pointing_to = and_then
+            split = Split(tree2nfa(re, placeholder), next_states)
+            placeholder.pointing_to = next_states
             return split
 
 def regex2nfa(regex):
@@ -304,32 +344,7 @@ def nfa_states(nfa):
     return (states, visited)
 
 def match(nfa, string):
-    def simulate_states(nfa_list, token):
-        visited = set()
-        next_states = []
-        for state in nfa_list:
-            (new_states, visited) = sim_state(state, token, visited)
-            next_states += new_states
-        return next_states
-
-    def sim_state(curr_state, token, visited):
-        if curr_state in visited:
-            return ([], visited)
-        else:
-            visited.add(curr_state)
-            if isinstance(curr_state, Consume):
-                if curr_state.literal == token:
-                    return ([curr_state.out], visited)
-                else:
-                    return ([], visited)
-            elif isinstance(curr_state, Split):
-                (s1, visited) = sim_state(curr_state.out1, token, visited)
-                (s2, visited) = sim_state(curr_state.out2, token, visited)
-                return (s1 + s2, visited)
-            elif isinstance(curr_state, Placeholder):
-                return sim_state(curr_state.pointing_to, token, visited)
-            else: # type == Match
-                return ([] if token != None else [curr_state], visited)
+    O = OrbanHelper()
 
     if isinstance(nfa, str):
         nfa = regex2nfa(nfa)
@@ -338,16 +353,45 @@ def match(nfa, string):
         return match([nfa], string)
         
     if string == '':
-        states = simulate_states(nfa, None)
-        for state in states:
-            if isinstance(state, Match):
-                return True
-        else:
-            return False
+        states = O.simulate_states(nfa, None)
+        return O.match_state_exists(states)
     else: # Non-empty string
         # get set of possible states for next token in string
-        next_states = simulate_states(nfa, string[0])
+        next_states = O.simulate_states(nfa, string[0])
         return match(next_states, string[1:])
 
+def substring(nfa, string, start=None, end=None):
+    def substring_helper(nfa, string):
+        if string == '':
+            states = O.simulate_states(nfa, None)
+            return O.match_state_exists(states)
+        else:
+            states = O.simulate_states(nfa, string[0])
+            if O.match_state_exists(states):
+                return True
+            else:
+                return substring_helper(states, string[1:])
 
+    O = OrbanHelper()
+
+    # Truncate string to desired start/end points
+    if start != None and end != None:
+        string = string[start:end]
+    elif state != None:
+        string = string[state:]
+    elif end != None:
+        string = string[:end]
+
+    if isinstance(nfa, str):
+        nfa = regex2nfa(nfa)
+        return None if nfa == None else substring([nfa], string) 
+    elif not isinstance(nfa, list):
+        nfa = [nfa]
+    
+    while len(string) > 0:
+        if substring_helper(nfa, string):
+           return True
+        string = string[1:]
+
+    return False
 # EOF #
