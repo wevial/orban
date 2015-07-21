@@ -72,6 +72,18 @@ class Placeholder:
     def __repr__(self):
         return "Placeholder -> " + str(id(self.pointing_to))
 
+class State:
+    def __init__(self, kind, **dict):
+        self.kind = kind
+        for key, val in dict.items():
+            if key == "edges":
+                self.edges = val
+            elif key == "char":
+                self.char = val
+            elif key == "elipson":
+                self.elipson = val
+
+
 def check_syntax(regex):
     """
     Check that the input regular expression is syntatically correct.
@@ -395,3 +407,18 @@ def substring(nfa, string, start=None, end=None):
 
     return False
 # EOF #
+
+def nfa2dfa(nfa):
+    output = set(nfa)
+
+    while True:
+        states_to_add = set()
+        for state in output:
+            if isinstance(state, Split):
+                pass
+            elif isinstance(state, Consume):
+                pass
+            elif isinstance(state, Placeholder):
+                pass
+            else: # Match state
+                break
